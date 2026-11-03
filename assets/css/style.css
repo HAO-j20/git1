@@ -489,7 +489,14 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 
 /* ---------- 响应式 ---------- */
-@media (max-width: 1080px) {
+/* 中等屏幕：保留左右两栏，只把药箱收窄，避免结果被挤到首屏之外 */
+@media (max-width: 1180px) and (min-width: 901px) {
+  .layout { grid-template-columns: 320px minmax(0, 1fr); padding: 0 16px; gap: 16px; }
+  .cart-panel { padding: 14px; }
+  .tl-item { width: 170px; }
+}
+
+@media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .cart-panel { position: static; }
   .cart-list { max-height: none; }
