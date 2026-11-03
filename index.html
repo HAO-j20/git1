@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>药搭子 · 家庭用药安全管家</title>
+<meta name="description" content="把家里正在吃的几种药放进去，告诉你哪些不能一起吃、一天该怎么排时间吃。">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">药</div>
+    <div class="brand-text">
+      <h1>药搭子</h1>
+      <p>家庭用药安全管家</p>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <label class="field">
+      <span>服药人群</span>
+      <select id="population">
+        <option value="">不指定</option>
+        <option value="elderly">老年人（≥65 岁）</option>
+        <option value="child">儿童</option>
+        <option value="pregnancy">孕期 / 哺乳期</option>
+        <option value="liver">肝功能不全</option>
+        <option value="kidney">肾功能不全</option>
+      </select>
+    </label>
+    <button id="elderToggle" class="switch" type="button" aria-pressed="false">
+      <span class="switch-dot"></span>
+      <span>适老模式</span>
+    </button>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ============ 左：药箱 ============ -->
+  <aside class="panel cart-panel">
+    <div class="panel-head">
+      <h2>我的药箱 <span id="cartCount" class="badge">0</span></h2>
+      <button id="clearCart" class="link-btn" type="button">清空</button>
+    </div>
+
+    <div class="search-wrap">
+      <div class="search">
+        <svg viewBox="0 0 24 24" class="search-icon" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+        </svg>
+        <input id="searchInput" type="text" autocomplete="off"
+               placeholder="搜药名、成分或症状，如「布洛芬」「退烧」">
+        <button id="searchClear" class="search-clear" type="button" hidden>✕</button>
+      </div>
+      <div id="suggest" class="suggest" hidden></div>
+    </div>
+
+    <ul id="cartList" class="cart-list"></ul>
+
+    <div class="cart-empty" id="cartEmpty">
+      <p class="cart-empty-title">药箱还是空的</p>
+      <p class="cart-empty-sub">从上方搜索添加，或直接载入一组示例看看效果。</p>
+    </div>
+
+    <button id="loadDemo" class="btn-demo" type="button">
+      <span>试试这组「危险组合」</span>
+      <small>感冒药 + 退烧药 + 头孢 + 藿香正气水</small>
+    </button>
+  </aside>
+
+  <!-- ============ 右：结果 ============ -->
+  <section class="panel result-panel">
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="risk" role="tab">风险评估</button>
+      <button class="tab" data-tab="schedule" role="tab">服药时间表</button>
+      <button class="tab" data-tab="graph" role="tab">关系图谱</button>
+    </nav>
+
+    <!-- 风险评估 -->
+    <div class="tab-panel active" id="tab-risk">
+      <div class="score-card" id="scoreCard">
+        <div class="score-ring">
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="score-value"><strong id="scoreNum">--</strong><span>安全分</span></div>
+        </div>
+        <div class="score-meta">
+          <h3 id="scoreTitle">往药箱里加几种药试试</h3>
+          <p id="scoreDesc">系统会检查成分重复、药物相互作用、人群禁忌与服用间隔。</p>
+          <div class="score-stats">
+            <span class="stat high"><b id="statHigh">0</b>高风险</span>
+            <span class="stat medium"><b id="statMedium">0</b>需注意</span>
+            <span class="stat low"><b id="statLow">0</b>提示</span>
+          </div>
+        </div>
+        <button id="speakBtn" class="btn-voice" type="button" title="用语音朗读风险摘要">
+          <span class="voice-icon">🔊</span>
+          <span>语音播报</span>
+        </button>
+      </div>
+
+      <div id="riskList" class="risk-list"></div>
+    </div>
+
+    <!-- 时间表 -->
+    <div class="tab-panel" id="tab-schedule">
+      <div class="schedule-head">
+        <div>
+          <h3>一天怎么吃</h3>
+          <p id="scheduleSummary">按服药频次与间隔要求自动排程</p>
+        </div>
+        <div class="legend">
+          <span><i class="dot dot-morning"></i>上午</span>
+          <span><i class="dot dot-noon"></i>中午</span>
+          <span><i class="dot dot-night"></i>晚间</span>
+        </div>
+      </div>
+      <div id="timeline" class="timeline"></div>
+      <div id="conflictBox" class="conflict-box" hidden></div>
+    </div>
+
+    <!-- 图谱 -->
+    <div class="tab-panel" id="tab-graph">
+      <div class="graph-head">
+        <h3>药物 · 成分 · 风险</h3>
+        <p>灰色线表示「药含有该成分」，红色线表示成分之间存在风险。</p>
+      </div>
+      <div class="graph-wrap">
+        <svg id="graphSvg" viewBox="0 0 720 460" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <div class="graph-legend">
+        <span><i class="lg lg-drug"></i>药品</span>
+        <span><i class="lg lg-ing"></i>成分</span>
+        <span><i class="lg lg-high"></i>高风险</span>
+        <span><i class="lg lg-medium"></i>需注意</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>EA HACKATHON 2026 · 校园黑客松参赛作品 ｜ 数据为公开资料整理，仅供学习演示，不构成医疗建议</p>
+</footer>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/graph.js"></script>
+<script src="assets/js/voice.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
