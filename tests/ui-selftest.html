@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>药搭子 · 界面自测</title>
+<style>
+  body { font-family: "Microsoft YaHei", sans-serif; padding: 16px; background: #f6f8fb; }
+  h1 { font-size: 16px; }
+  #out { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.7; }
+  .ok { color: #0b7f72; }
+  .fail { color: #c93a3f; font-weight: 700; }
+  iframe { width: 1180px; height: 820px; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 12px; background: #fff; }
+</style>
+</head>
+<body>
+<h1>界面自测（自动化点击 + 断言）</h1>
+<pre id="out">running…</pre>
+<iframe id="frame" src="../index.html"></iframe>
+
+<script>
+var results = [];
+function assert(name, cond, extra) {
+  results.push({ name: name, ok: !!cond, extra: extra || '' });
+}
+
+var frame = document.getElementById('frame');
+
+frame.onload = function () {
+  var d = frame.contentDocument;
+  var w = frame.contentWindow;
+  if (!d) {
+    document.getElementById('out').textContent = '无法访问 iframe（需要 --allow-file-access-from-files）';
+    return;
+  }
+
+  try {
+    /* --- 1. 搜索 --- */
+    var input = d.querySelector('#searchInput');
+    input.value = '布洛芬';
+    input.dispatchEvent(new w.Event('input', { bubbles: true }));
+    var items = d.querySelectorAll('#suggest .suggest-item');
+    assert('搜索“布洛芬”能给出建议', items.length >= 1, 'count=' + items.length);
+
+    /* --- 2. 点击建议加入药箱 --- */
+    if (items.length) items[0].click();
+    assert('点击建议后药箱为 1 种', d.querySelectorAll('#cartList .cart-item').length === 1,
+      'count=' + d.querySelectorAll('#cartList .cart-item').length);
+
+    /* --- 3. 重复添加拦截 --- */
+    input.value = '布洛芬';
+    input.dispatchEvent(new w.Event('input', { bubbles: true }));
+    var again = d.querySelectorAll('#suggest .suggest-item');
+    if (again.length) again[0].click();
+    assert('同一种药不会重复加入', d.querySelectorAll('#cartList .cart-item').length === 1,
+      'count=' + d.querySelectorAll('#cartList .cart-item').length);
+
+    /* --- 4. 演示组合 --- */
+    d.querySelector('#clearCart').click();
+    assert('清空后药箱为 0', d.querySelectorAll('#cartList .cart-item').length === 0);
+
+    d.querySelector('#loadDemo').click();
+    assert('演示组合载入 5 种药', d.querySelectorAll('#cartList .cart-item').length === 5,
+      'count=' + d.querySelectorAll('#cartList .cart-item').length);
+
+    /* --- 5. 风险渲染 --- */
+    var riskItems = d.querySelectorAll('#riskList .risk-item');
+    var highItems = d.querySelectorAll('#riskList .risk-item.high');
+    assert('渲染出风险卡片', riskItems.length >= 3, 'total=' + riskItems.length);
+    assert('至少有一条高风险', highItems.length >= 1, 'high=' + highItems.length);
+
+    var score = d.querySelector('#scoreNum').textContent;
+    assert('安全分已计算', /^\d+$/.test(score), 'score=' + score);
+
+    /* --- 6. 时间表 --- */
+    var rows = d.querySelectorAll('#timeline .tl-row');
+    assert('时间表渲染出时间点', rows.length >= 3, 'rows=' + rows.length);
+
+    /* --- 7. 人群切换 --- */
+    var pop = d.querySelector('#population');
+    pop.value = 'elderly';
+    pop.dispatchEvent(new w.Event('change', { bubbles: true }));
+    var popRisks = d.querySelectorAll('#riskList .risk-item');
+    var hasPop = Array.prototype.some.call(popRisks, function (n) {
+      return n.textContent.indexOf('老年人') >= 0;
+    });
+    assert('切换到老年人后出现人群提示', hasPop);
+
+    /* --- 8. 适老模式 --- */
+    d.querySelector('#elderToggle').click();
+    assert('适老模式给 body 加了 class', d.body.classList.contains('elder'));
+    d.querySelector('#elderToggle').click();
+    assert('再次点击关闭适老模式', !d.body.classList.contains('elder'));
+
+    /* --- 9. 图谱 --- */
+    d.querySelector('[data-tab="graph"]').click();
+    var circles = d.querySelectorAll('#graphSvg circle');
+    assert('图谱渲染出节点', circles.length >= 5, 'circles=' + circles.length);
+
+    /* --- 10. 空状态 --- */
+    d.querySelector('[data-tab="risk"]').click();
+    d.querySelector('#clearCart').click();
+    var guide = d.querySelector('#riskList .guide');
+    assert('空药箱显示引导卡片', !!guide);
+
+  } catch (err) {
+    results.push({ name: '脚本异常：' + err.message, ok: false, extra: '' });
+  }
+
+  var pass = results.filter(function (r) { return r.ok; }).length;
+  var lines = ['通过 ' + pass + ' / ' + results.length, ''];
+  results.forEach(function (r) {
+    lines.push((r.ok ? '[PASS] ' : '[FAIL] ') + r.name + (r.extra ? '  (' + r.extra + ')' : ''));
+  });
+  document.getElementById('out').textContent = lines.join('\n');
+  document.title = 'SELFTEST ' + pass + '/' + results.length;
+};
+</script>
+</body>
+</html>

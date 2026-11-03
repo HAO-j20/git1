@@ -472,8 +472,8 @@
     });
 
     if (tab === 'graph') {
-      /* 面板隐藏时 SVG 尺寸为 0，切换后再画一次 */
-      requestAnimationFrame(function () { renderGraph(state.analysis); });
+      /* 面板切换完成后再画，保证 SVG 已经有布局尺寸 */
+      renderGraph(state.analysis);
     }
   }
 
